@@ -13,7 +13,10 @@ object BracketDemo extends IOApp {
   val file = new File("src/main/resources/example.txt")
 
   override def run(args: List[String]): IO[ExitCode] = {
-    val line: IO[String] = ???
+    val line: IO[String] = Blocker[IO].use { blocker =>
+      import Files._
+      open(file)(blocker).bracket { read(blocker) }(close(blocker))
+    }
 
     line
       .flatMap { line =>
