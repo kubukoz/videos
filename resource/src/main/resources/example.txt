@@ -1,2 +1,4 @@
 example2.txt
 rest of file
+another line in the rest of file
+woops

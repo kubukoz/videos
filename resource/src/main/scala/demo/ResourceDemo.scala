@@ -16,6 +16,13 @@ import cats.effect.ContextShift
 import cats.implicits._
 import cats.effect.Console.io.putStrLn
 
+// Today's task 1:
+// - open file 1
+// - read first line
+// - use it as the filename for another file
+// - open the second file
+// - read everything from that file and the rest of file 1
+// - print out all the lines from both files
 object ResourceDemo extends IOApp {
   val file1 = new File("src/main/resources/example.txt")
   def file2(name: String) = new File("src/main/resources/" + name)
@@ -37,6 +44,7 @@ object ResourceDemo extends IOApp {
 trait Files[F[_]] {
   def open(file: File): F[BufferedReader]
   def readLine(reader: BufferedReader): F[String]
+  def readToEnd(reader: BufferedReader): F[String]
   def close(reader: BufferedReader): F[Unit]
 }
 
@@ -53,6 +61,9 @@ object Files {
     def readLine(reader: BufferedReader): F[String] = blocker.delay[F, String] {
       reader.readLine()
     }
+
+    def readToEnd(reader: BufferedReader): F[String] =
+      fs2.Stream.repeatEval(readLine(reader)).takeWhile(_ != null).intersperse("\n").compile.foldMonoid
 
     def close(reader: BufferedReader): F[Unit] = blocker.delay[F, Unit] {
       println("Closing file reader")
