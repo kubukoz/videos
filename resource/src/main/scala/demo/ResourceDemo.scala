@@ -14,16 +14,21 @@ import cats.effect.Console.io.putStrLn
 import cats.Applicative
 import cats.effect.Console
 import cats.Monad
+import cats.effect.implicits._
+import cats.effect.Bracket
 
 object ResourceDemo extends IOApp {
   val file1 = new File("src/main/resources/example.txt")
   val file2 = new File("src/main/resources/example2.txt")
 
+  def readFile[F[_], E](file: File)(implicit files: Files[F], bracket: Bracket[F, E]): F[String] =
+    files.open(file).bracket(files.read)(files.close)
+
   override def run(args: List[String]): IO[ExitCode] = {
     val line: IO[String] = Blocker[IO].use { blocker =>
-      val files = Files.fileSystem[IO](blocker)
+      implicit val files = Files.fileSystem[IO](blocker)
 
-      files.open(file1).bracket(files.read)(files.close)
+      readFile(file1)
     }
 
     line.flatMap(putStrLn)
