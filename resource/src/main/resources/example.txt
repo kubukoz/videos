@@ -1,1 +1,2 @@
-hello world
+example2.txt
+rest of file

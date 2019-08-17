@@ -7,38 +7,37 @@ import cats.effect.IOApp
 import java.io.File
 import java.io.FileReader
 import cats.effect.Blocker
-import cats.implicits._
-import cats.effect.ContextShift
 import cats.effect.Sync
-import cats.effect.Console.io.putStrLn
 import cats.Applicative
 import cats.effect.Console
 import cats.Monad
-import cats.effect.implicits._
-import cats.effect.Bracket
+import java.io.BufferedReader
+import cats.effect.ContextShift
+import cats.implicits._
+import cats.effect.Console.io.putStrLn
 
 object ResourceDemo extends IOApp {
   val file1 = new File("src/main/resources/example.txt")
-  val file2 = new File("src/main/resources/example2.txt")
-
-  def readFile[F[_], E](file: File)(implicit files: Files[F], bracket: Bracket[F, E]): F[String] =
-    files.open(file).bracket(files.read)(files.close)
+  def file2(name: String) = new File("src/main/resources/" + name)
 
   override def run(args: List[String]): IO[ExitCode] = {
-    val line: IO[String] = Blocker[IO].use { blocker =>
-      implicit val files = Files.fileSystem[IO](blocker)
+    Blocker[IO].use { blocker =>
+      val files = Files.fileSystem[IO](blocker)
 
-      readFile(file1)
+      files
+        .open(file1)
+        .bracket { file1 =>
+          files.readLine(file1)
+        }(files.close)
+        .flatMap(putStrLn)
     }
-
-    line.flatMap(putStrLn)
   }.as(ExitCode.Success)
 }
 
 trait Files[F[_]] {
-  def open(file: File): F[FileReader]
-  def read(reader: FileReader): F[String]
-  def close(reader: FileReader): F[Unit]
+  def open(file: File): F[BufferedReader]
+  def readLine(reader: BufferedReader): F[String]
+  def close(reader: BufferedReader): F[Unit]
 }
 
 object Files {
@@ -46,18 +45,16 @@ object Files {
 
   def fileSystem[F[_]: ContextShift: Sync](blocker: Blocker): Files[F] = new Files[F] {
 
-    def open(file: File): F[FileReader] = blocker.delay[F, FileReader] {
+    def open(file: File): F[BufferedReader] = blocker.delay[F, BufferedReader] {
       println("Opening file reader")
-      new FileReader(file)
+      new BufferedReader(new FileReader(file))
     }
 
-    def read(reader: FileReader): F[String] = blocker.delay[F, String] {
-      val buffer = Array.fill[Char](4096)(0)
-      reader.read(buffer)
-      new String(buffer).trim
+    def readLine(reader: BufferedReader): F[String] = blocker.delay[F, String] {
+      reader.readLine()
     }
 
-    def close(reader: FileReader): F[Unit] = blocker.delay[F, Unit] {
+    def close(reader: BufferedReader): F[Unit] = blocker.delay[F, Unit] {
       println("Closing file reader")
       reader.close()
     }
@@ -71,8 +68,8 @@ trait BusinessService[F[_]] {
 object BusinessService {
   def apply[F[_]](implicit F: BusinessService[F]): BusinessService[F] = F
 
-  def fromFiles[F[_]: Files: Applicative](readers: List[FileReader]): BusinessService[F] = new BusinessService[F] {
-    val getBusinessData: F[List[String]] = readers.traverse(Files[F].read)
+  def fromFiles[F[_]: Files: Applicative](readers: List[BufferedReader]): BusinessService[F] = new BusinessService[F] {
+    val getBusinessData: F[List[String]] = readers.traverse(Files[F].readLine)
   }
 }
 
