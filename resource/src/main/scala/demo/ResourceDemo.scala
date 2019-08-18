@@ -25,7 +25,7 @@ import cats.effect.Console.io.putStrLn
 // - print out all the lines from both files
 object ResourceDemo extends IOApp {
   val file1 = new File("src/main/resources/example.txt")
-  def file2(name: String) = new File("src/main/resources/" + name)
+  def fileFromName(name: String) = new File("src/main/resources/" + name)
 
   override def run(args: List[String]): IO[ExitCode] = {
     Blocker[IO]
