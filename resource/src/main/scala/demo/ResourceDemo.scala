@@ -15,6 +15,9 @@ import java.io.BufferedReader
 import cats.effect.ContextShift
 import cats.implicits._
 import cats.effect.Console.io.putStrLn
+import cats.effect.Resource
+import cats.data.NonEmptyList
+import cats.effect.Async
 
 // Today's task 1:
 // - open file 1
@@ -24,22 +27,28 @@ import cats.effect.Console.io.putStrLn
 // - read everything from that file and the rest of file 1
 // - print out all the lines from both files
 object ResourceDemo extends IOApp {
-  val file1 = new File("src/main/resources/example.txt")
+  val file1Name = new File("src/main/resources/example.txt")
   def fileFromName(name: String) = new File("src/main/resources/" + name)
 
   override def run(args: List[String]): IO[ExitCode] = {
-    Blocker[IO]
-      .use { blocker =>
-        val files = Files.fileSystem[IO](blocker)
+    val resource: Resource[IO, App[IO]] =
+      for {
+        blocker <- Blocker[IO]
+        files = Files.fileSystem[IO](blocker)
+        file1     <- Resource.fromAutoCloseable(files.open(file1Name))
+        firstLine <- Resource.liftF(files.readLine(file1))
+        file2     <- Resource.fromAutoCloseable(files.open(fileFromName(firstLine)))
+      } yield {
+        implicit val files2: Files[IO] = files
+        implicit val business: BusinessService[IO] = BusinessService.fromFiles[IO](List(file1, file2))
 
-        files
-          .open(file1)
-          .bracket { file1 =>
-            files.readLine(file1)
-          }(files.close)
+        import cats.effect.Console.implicits._
+
+        App.instance[IO]
       }
-      .flatMap(putStrLn)
-  }.as(ExitCode.Success)
+
+    resource.use(_.run)
+  }
 }
 
 trait Files[F[_]] {
@@ -81,23 +90,20 @@ object BusinessService {
   def apply[F[_]](implicit F: BusinessService[F]): BusinessService[F] = F
 
   def fromFiles[F[_]: Files: Applicative](readers: List[BufferedReader]): BusinessService[F] = new BusinessService[F] {
-    val getBusinessData: F[List[String]] = readers.traverse(Files[F].readLine)
+    val getBusinessData: F[List[String]] = readers.traverse(Files[F].readToEnd)
   }
 }
 
 trait App[F[_]] {
-  def run: F[Unit]
+  def run: F[Nothing]
 }
 
 object App {
 
-  def instance[F[_]: BusinessService: Console: Monad]: App[F] = new App[F] {
+  def instance[F[_]: BusinessService: Console: Async]: App[F] = new App[F] {
 
-    val run: F[Unit] = BusinessService[F]
-      .getBusinessData
-      .flatMap { results =>
-        results.traverse(Console[F].putStrLn)
-      }
-      .void
+    val run: F[Nothing] = BusinessService[F].getBusinessData.flatMap { results =>
+      results.traverse_(Console[F].putStrLn)
+    } *> [Nothing] Async[F].never[Nothing]
   }
 }
