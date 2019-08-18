@@ -28,16 +28,17 @@ object ResourceDemo extends IOApp {
   def file2(name: String) = new File("src/main/resources/" + name)
 
   override def run(args: List[String]): IO[ExitCode] = {
-    Blocker[IO].use { blocker =>
-      val files = Files.fileSystem[IO](blocker)
+    Blocker[IO]
+      .use { blocker =>
+        val files = Files.fileSystem[IO](blocker)
 
-      files
-        .open(file1)
-        .bracket { file1 =>
-          files.readLine(file1)
-        }(files.close)
-        .flatMap(putStrLn)
-    }
+        files
+          .open(file1)
+          .bracket { file1 =>
+            files.readLine(file1)
+          }(files.close)
+      }
+      .flatMap(putStrLn)
   }.as(ExitCode.Success)
 }
 
