@@ -47,7 +47,12 @@ class KVStoreRedisTests extends CatsSuite with RedisSuite {
 trait KVStoreTests[F[_], K, V] extends Laws {
   def laws: KVStoreLaws[F, K, V]
 
-  def kvstore(implicit arbKey: Arbitrary[K], arbValue: Arbitrary[V], eqFOptionV: Eq[F[Option[V]]]): RuleSet =
+  def kvstore(
+    implicit arbKey: Arbitrary[K],
+    arbValue: Arbitrary[V],
+    eqFOptionV: Eq[F[Option[V]]],
+    eqOptionF: Eq[Option[F[(Option[V], Option[V])]]]
+  ): RuleSet =
     new DefaultRuleSet(
       name = "KVStore",
       parent = None,
@@ -55,13 +60,16 @@ trait KVStoreTests[F[_], K, V] extends Laws {
       "get idempotence" -> forAllNoShrink(laws.getIdempotence _),
       "latest overwrite wins" -> forAllNoShrink(laws.latestOverwriteWins _),
       "delete removes" -> forAllNoShrink(laws.deleteRemoves _),
-      "can write after delete" -> forAllNoShrink(laws.canWriteAfterDelete _)
+      "can write after delete" -> forAllNoShrink(laws.canWriteAfterDelete _),
+      "writes are independent" -> forAllNoShrink(laws.writeIndependence _),
+      "deletes are independent (left)" -> forAllNoShrink(laws.deleteIndependenceLeft _),
+      "deletes are independent (right)" -> forAllNoShrink(laws.deleteIndependenceRight _)
     )
 }
 
 object KVStoreTests {
 
-  def apply[F[_]: Monad, K, V](implicit store: KVStore[F, K, V]): KVStoreTests[F, K, V] = new KVStoreTests[F, K, V] {
+  def apply[F[_]: Monad, K: Eq, V](implicit store: KVStore[F, K, V]): KVStoreTests[F, K, V] = new KVStoreTests[F, K, V] {
     def laws: KVStoreLaws[F, K, V] = new KVStoreLaws[F, K, V](store)
   }
 }
