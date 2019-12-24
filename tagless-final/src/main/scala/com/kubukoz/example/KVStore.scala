@@ -28,8 +28,6 @@ final class KVStoreLaws[F[_]: Monad, K: Eq, V](store: KVStore[F, K, V]) {
   import cats.laws._
   import store._
 
-  import org.scalacheck.Prop.BooleanOperators
-
   // writes are persisted
   def writeGetPersistence(k: K, v: V) =
     write(k, v) *> get(k) <->
