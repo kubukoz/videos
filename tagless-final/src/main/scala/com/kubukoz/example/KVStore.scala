@@ -14,6 +14,7 @@ object KVStore {
     def get(k: K): F[Option[V]] = S.inspect(_.get(k))
     def delete(k: K): F[Unit] = S.modify(_ - k)
   }
+
   import dev.profunktor.redis4cats.algebra._
 
   def redisImpl[F[_], K, V](implicit commands: StringCommands[F, K, V], del: KeyCommands[F, K]): KVStore[F, K, V] =
