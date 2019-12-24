@@ -34,7 +34,7 @@ class KVStoreInMemoryTests extends CatsSuite {
 class KVStoreRedisTests extends CatsSuite with RedisSuite {
   import TestUtils._
 
-  implicit override val generatorDrivenConfig: PropertyCheckConfiguration =q checkConfiguration.copy(workers = 1)
+  implicit override val generatorDrivenConfig: PropertyCheckConfiguration = checkConfiguration.copy(workers = 1)
 
   implicit val redisClient = client
 
