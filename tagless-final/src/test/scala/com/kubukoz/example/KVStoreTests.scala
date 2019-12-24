@@ -34,11 +34,10 @@ class KVStoreInMemoryTests extends CatsSuite {
 class KVStoreRedisTests extends CatsSuite with RedisSuite {
   import TestUtils._
 
-  // sadly we can't just copy from super.config or an instance's config (the latter due to PropertyCheckConfiguration being a nested class)
-  override lazy val checkConfiguration: PropertyCheckConfiguration =
-    PropertyCheckConfiguration(minSuccessful = 50, maxDiscardedFactor = 5.0, minSize = 0, sizeRange = 10, workers = 1)
+  implicit override val generatorDrivenConfig: PropertyCheckConfiguration = checkConfiguration.copy(workers = 1)
 
   implicit val redisClient = client
+
   implicit val arbitraryString = Arbitrary(Gen.nonEmptyListOf(Gen.alphaChar).map(_.mkString))
   implicit val store = KVStore.redisImpl[IO, String, String]
 
