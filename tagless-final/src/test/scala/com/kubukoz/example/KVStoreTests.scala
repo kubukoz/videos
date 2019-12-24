@@ -1,41 +1,48 @@
 package com.kubukoz.example
 
-import cats.tests.CatsSuite
 import org.typelevel.discipline.Laws
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop._
 import cats.laws.discipline._
+import cats.laws.discipline.arbitrary._
 import cats.data.State
 import cats.mtl.instances.all._
-import cats.laws.discipline.arbitrary._
 
 import scala.util.Try
 import dev.profunktor.redis4cats.connection.RedisClient
+
 import scala.concurrent.ExecutionContext
 import dev.profunktor.redis4cats.connection.RedisURI
 import dev.profunktor.redis4cats.log4cats._
 import io.chrisdavenport.log4cats.Logger
-import io.chrisdavenport.log4cats.noop.NoOpLogger
 import dev.profunktor.redis4cats.interpreter.Redis
 import dev.profunktor.redis4cats.domain.RedisCodec
 import cats.effect.laws.util.TestInstances._
 import org.scalacheck.Gen
-import org.scalatest.BeforeAndAfterEach
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.Suite
+import dev.profunktor.redis4cats.algebra.RedisCommands
+import io.chrisdavenport.log4cats.noop.NoOpLogger
+import cats.tests.CatsSuite
 
-class KVStoreInstanceTests extends CatsSuite with RedisSuite {
+class KVStoreInMemoryTests extends CatsSuite {
   import TestUtils._
 
-  checkAll("KVStore[State[Map[K, V], ?]", KVStoreTests[State[Map[MiniInt, MiniInt], ?], MiniInt, MiniInt].kvstore)
+  checkAll("KVStore(MonadState)", KVStoreTests[State[Map[MiniInt, MiniInt], ?], MiniInt, MiniInt].kvstore)
+}
 
-  locally {
-    implicit val redisClient = client
-    implicit val arbitraryString = Arbitrary(Gen.nonEmptyListOf(Gen.alphaNumChar).map(_.mkString))
-    implicit val store = KVStore.redisImpl[IO, String, String]
+class KVStoreRedisTests extends CatsSuite with RedisSuite {
+  import TestUtils._
 
-    checkAll("KVStore(redis)", KVStoreTests[IO, String, String].kvstore)
-  }
+  // sadly we can't just copy from super.config or an instance's config (the latter due to PropertyCheckConfiguration being a nested class)
+  override lazy val checkConfiguration: PropertyCheckConfiguration =
+    PropertyCheckConfiguration(minSuccessful = 50, maxDiscardedFactor = 5.0, minSize = 0, sizeRange = 10, workers = 1)
+
+  implicit val redisClient = client
+  implicit val arbitraryString = Arbitrary(Gen.nonEmptyListOf(Gen.alphaChar).map(_.mkString))
+  implicit val store = KVStore.redisImpl[IO, String, String]
+
+  checkAll("KVStore(redis)", KVStoreTests[IO, String, String].kvstore)
 }
 
 trait KVStoreTests[F[_], K, V] extends Laws {
@@ -45,10 +52,10 @@ trait KVStoreTests[F[_], K, V] extends Laws {
     new DefaultRuleSet(
       name = "KVStore",
       parent = None,
-      "write-get persistence" -> forAll(laws.writeGetPersistence _),
-      "latest overwrite wins" -> forAll(laws.latestOverwriteWins _),
-      "delete removes" -> forAll(laws.deleteRemoves _),
-      "can write after delete" -> forAll(laws.canWriteAfterDelete _)
+      "write-get persistence" -> forAllNoShrink(laws.writeGetPersistence _),
+      "latest overwrite wins" -> forAllNoShrink(laws.latestOverwriteWins _),
+      "delete removes" -> forAllNoShrink(laws.deleteRemoves _),
+      "can write after delete" -> forAllNoShrink(laws.canWriteAfterDelete _)
     )
 }
 
@@ -74,11 +81,10 @@ object TestUtils {
 
   implicit val logger: Logger[IO] = NoOpLogger.impl
 
-  implicit def ioEq[A: Eq]: Eq[IO[A]] = Eq.by(_.attempt.unsafeRunSync())
   implicit def stateInstance[K, V]: KVStore[State[Map[K, V], ?], K, V] = KVStore.inMemoryStateBased
 }
 
-trait RedisSuite extends Suite with BeforeAndAfterAll with BeforeAndAfterEach {
+trait RedisSuite extends Suite with BeforeAndAfterAll {
   import TestUtils._
 
   val redis = for {
@@ -89,10 +95,12 @@ trait RedisSuite extends Suite with BeforeAndAfterAll with BeforeAndAfterEach {
 
   val (client, shutdownClient) = redis.allocated.unsafeRunSync()
 
-  override def afterEach(): Unit =
-    // probably not the best way to clear the database long-term, as it flushes to disk...
-    client.flushAll.unsafeRunSync()
+  def removeAllKeys[V](client: RedisCommands[IO, String, V]) =
+    client.keys("*").flatMap(_.traverse(client.del(_)))
+
+  implicit def redisIoEq[A: Eq]: Eq[IO[A]] =
+    Eq.by(io => (removeAllKeys(client) *> io).attempt.unsafeRunSync())
 
   override def afterAll(): Unit =
-    shutdownClient.unsafeRunSync()
+    (removeAllKeys(client) *> shutdownClient).unsafeRunSync()
 }
