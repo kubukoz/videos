@@ -52,6 +52,7 @@ trait KVStoreTests[F[_], K, V] extends Laws {
       name = "KVStore",
       parent = None,
       "write-get persistence" -> forAllNoShrink(laws.writeGetPersistence _),
+      "get idempotence" -> forAllNoShrink(laws.getIdempotence _),
       "latest overwrite wins" -> forAllNoShrink(laws.latestOverwriteWins _),
       "delete removes" -> forAllNoShrink(laws.deleteRemoves _),
       "can write after delete" -> forAllNoShrink(laws.canWriteAfterDelete _)

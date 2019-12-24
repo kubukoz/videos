@@ -1,21 +1,19 @@
 package com.kubukoz.example
 
-import cats.mtl.MonadState
-
 trait KVStore[F[_], K, V] {
-  def write(k: K, v: V): F[Unit]
   def get(k: K): F[Option[V]]
+  def write(k: K, v: V): F[Unit]
   def delete(k: K): F[Unit]
 }
 
 object KVStore {
+  import cats.mtl.MonadState
 
   def inMemoryStateBased[F[_], K, V](implicit S: MonadState[F, Map[K, V]]): KVStore[F, K, V] = new KVStore[F, K, V] {
     def write(k: K, v: V): F[Unit] = S.modify(_ + (k -> v))
     def get(k: K): F[Option[V]] = S.inspect(_.get(k))
     def delete(k: K): F[Unit] = S.modify(_ - k)
   }
-
   import dev.profunktor.redis4cats.algebra._
 
   def redisImpl[F[_], K, V](implicit commands: StringCommands[F, K, V], del: KeyCommands[F, K]): KVStore[F, K, V] =
@@ -33,6 +31,9 @@ final class KVStoreLaws[F[_]: Monad, K, V](store: KVStore[F, K, V]) {
   def writeGetPersistence(k: K, v: V) =
     write(k, v) *> get(k) <->
       write(k, v) *> v.some.pure[F]
+
+  def getIdempotence(k: K, v: V) =
+    write(k, v) *> get(k) *> get(k) <-> write(k, v) *> get(k)
 
   def latestOverwriteWins(k: K, vOld: V, v: V) =
     write(k, vOld) *> write(k, v) *> get(k) <->
