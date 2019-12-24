@@ -90,6 +90,7 @@ trait RedisSuite extends Suite with BeforeAndAfterAll with BeforeAndAfterEach {
   val (client, shutdownClient) = redis.allocated.unsafeRunSync()
 
   override def afterEach(): Unit =
+    // probably not the best way to clear the database long-term, as it flushes to disk...
     client.flushAll.unsafeRunSync()
 
   override def afterAll(): Unit =

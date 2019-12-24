@@ -43,7 +43,3 @@ final class KVStoreLaws[F[_]: Monad, K, V](store: KVStore[F, K, V]) {
   def canWriteAfterDelete(k: K, v: V, v2: V) =
     write(k, v) *> delete(k) *> write(k, v2) *> get(k) <-> write(k, v2) *> get(k)
 }
-
-object Main extends IOApp {
-  def run(args: List[String]): IO[ExitCode] = putStrLn("Hello world") as ExitCode.Success
-}
