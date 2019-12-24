@@ -1,12 +1,13 @@
 package com.kubukoz.example
 
 trait KVStore[F[_], K, V] {
-  def get(k: K): F[Option[V]]
   def write(k: K, v: V): F[Unit]
+  def get(k: K): F[Option[V]]
   def delete(k: K): F[Unit]
 }
 
 object KVStore {
+
   import cats.mtl.MonadState
 
   def inMemoryStateBased[F[_], K, V](implicit S: MonadState[F, Map[K, V]]): KVStore[F, K, V] = new KVStore[F, K, V] {
@@ -46,6 +47,15 @@ final class KVStoreLaws[F[_]: Monad, K: Eq, V](store: KVStore[F, K, V]) {
   // delete drops key
   def deleteRemoves(k: K, v: V) =
     write(k, v) *> delete(k) *> get(k) <->
+      none[V].pure[F]
+
+  // delete of an absent key is no-op
+  def deleteAbsentKey(k: K) =
+    delete(k) *> get(k) <-> none[V].pure[F]
+
+  // duplicate delete is no-op
+  def deleteTwiceIsDeleteOnce(k: K, v: V) =
+    write(k, v) *> delete(k) *> delete(k) *> get(k) <->
       none[V].pure[F]
 
   // it's possible to write again after delete

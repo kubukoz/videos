@@ -34,7 +34,7 @@ class KVStoreInMemoryTests extends CatsSuite {
 class KVStoreRedisTests extends CatsSuite with RedisSuite {
   import TestUtils._
 
-  implicit override val generatorDrivenConfig: PropertyCheckConfiguration = checkConfiguration.copy(workers = 1)
+  implicit override val generatorDrivenConfig: PropertyCheckConfiguration =q checkConfiguration.copy(workers = 1)
 
   implicit val redisClient = client
 
@@ -60,6 +60,8 @@ trait KVStoreTests[F[_], K, V] extends Laws {
       "get idempotence" -> forAllNoShrink(laws.getIdempotence _),
       "latest overwrite wins" -> forAllNoShrink(laws.latestOverwriteWins _),
       "delete removes" -> forAllNoShrink(laws.deleteRemoves _),
+      "delete absent key is no-op" -> forAllNoShrink(laws.deleteAbsentKey _),
+      "delete twice is delete once" -> forAllNoShrink(laws.deleteTwiceIsDeleteOnce _),
       "can write after delete" -> forAllNoShrink(laws.canWriteAfterDelete _),
       "writes are independent" -> forAllNoShrink(laws.writeIndependence _),
       "deletes are independent (left)" -> forAllNoShrink(laws.deleteIndependenceLeft _),
@@ -69,9 +71,10 @@ trait KVStoreTests[F[_], K, V] extends Laws {
 
 object KVStoreTests {
 
-  def apply[F[_]: Monad, K: Eq, V](implicit store: KVStore[F, K, V]): KVStoreTests[F, K, V] = new KVStoreTests[F, K, V] {
-    def laws: KVStoreLaws[F, K, V] = new KVStoreLaws[F, K, V](store)
-  }
+  def apply[F[_]: Monad, K: Eq, V](implicit store: KVStore[F, K, V]): KVStoreTests[F, K, V] =
+    new KVStoreTests[F, K, V] {
+      def laws: KVStoreLaws[F, K, V] = new KVStoreLaws[F, K, V](store)
+    }
 }
 
 object TestUtils {
