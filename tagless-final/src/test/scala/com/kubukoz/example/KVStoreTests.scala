@@ -106,12 +106,9 @@ trait RedisSuite extends Suite with BeforeAndAfterAll {
 
   val (client, shutdownClient) = redis.allocated.unsafeRunSync()
 
-  def removeAllKeys[V](client: RedisCommands[IO, String, V]) =
-    client.keys("*").flatMap(_.traverse(client.del(_)))
-
   implicit def redisIoEq[A: Eq]: Eq[IO[A]] =
-    Eq.by(io => (removeAllKeys(client) *> io).attempt.unsafeRunSync())
+    Eq.by(io => (client.flushAll *> io).attempt.unsafeRunSync())
 
   override def afterAll(): Unit =
-    (removeAllKeys(client) *> shutdownClient).unsafeRunSync()
+    (client.flushAll *> shutdownClient).unsafeRunSync()
 }
