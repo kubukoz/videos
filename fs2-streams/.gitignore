@@ -1,0 +1,9 @@
+out/
+.metals/
+*.class
+.idea
+.bloop
+target/
+**/secret.conf
+**/.DS_Store
+.vscode/
