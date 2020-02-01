@@ -12,6 +12,7 @@ import scala.concurrent.duration._
 import cats.effect.IO
 import cats.effect.IOApp
 import cats.effect.ExitCode
+import scala.util.Random
 
 object SnippetRunner extends IOApp {
 
@@ -55,4 +56,6 @@ object SnippetRunner extends IOApp {
   implicit val publicShift = contextShift
 
   def run(args: List[String]): IO[ExitCode] = IO.unit.as(ExitCode.Success)
+
+  val randomInt: IO[Int] = IO(Random.nextInt())
 }
