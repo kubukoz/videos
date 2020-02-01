@@ -1,4 +1,5 @@
-def crossPlugin(x: sbt.librarymanagement.ModuleID) = compilerPlugin(x cross CrossVersion.full)
+def crossPlugin(x: sbt.librarymanagement.ModuleID) =
+  compilerPlugin(x cross CrossVersion.full)
 
 val compilerPlugins = List(
   compilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
@@ -8,14 +9,17 @@ val compilerPlugins = List(
 
 val commonSettings = Seq(
   scalaVersion := "2.13.1",
-  scalacOptions ~= (_.filterNot(_ == "-Xfatal-warnings") ++ Seq(
+  scalacOptions --= Seq(
+    "-Xfatal-warnings", //because I really dislike this flag in development
+    "-Wunused:imports" //because we'll start with unused imports
+  ),
+  scalacOptions ++= Seq(
     "-Ymacro-annotations"
-  )),
+  ),
   fork in Test := true,
   updateOptions := updateOptions.value.withGigahorse(false),
   libraryDependencies ++= Seq(
-    "com.lihaoyi" %% "pprint" % "0.5.6",
-    "co.fs2" %% "fs2-core" % "2.2.1",
+    "co.fs2" %% "fs2-core" % "2.2.2",
     "dev.profunktor" %% "console4cats" % "0.8.1"
   ) ++ compilerPlugins
 )
