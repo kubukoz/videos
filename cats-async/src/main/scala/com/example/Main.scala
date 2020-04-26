@@ -14,7 +14,6 @@ import scala.concurrent.duration._
 object Main extends IOApp {
 
   def run(args: List[String]): IO[ExitCode] = {
-    IO(Thread.sleep(1000)).runAsync(_ => IO.unit).unsafeRunSync()
     // Window.make.use(new WindowMain(_).run) *>
     IO(println("Hello"))
   }.as(ExitCode.Success)
