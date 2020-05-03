@@ -21,8 +21,7 @@ object Main extends IOApp {
 
 class WindowMain(window: Window) {
 
-  def sleep(d: FiniteDuration): IO[Unit] =
-    ???
+  def sleep(d: FiniteDuration): IO[Unit] = ???
 
   val run: IO[Unit] = ???
 
