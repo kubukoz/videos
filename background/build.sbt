@@ -20,9 +20,12 @@ val commonSettings = Seq(
   updateOptions := updateOptions.value.withGigahorse(false),
   libraryDependencies ++= Seq(
     "org.typelevel" %% "cats-effect" % "2.1.3",
+    "org.http4s" %% "http4s-blaze-server" % "0.21.4",
+    "dev.zio" %% "zio" % "1.0.0-RC21",
+    "dev.zio" %% "zio-interop-cats" % "2.1.3.0-RC16",
     "dev.profunktor" %% "console4cats" % "0.8.1"
   ) ++ compilerPlugins
 )
 
-val $name;format="camel"$ =
+val background =
   project.in(file(".")).settings(commonSettings).settings(skip in publish := true)
