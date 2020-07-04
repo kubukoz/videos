@@ -19,6 +19,7 @@ import cats.instances.long
 import scala.util.Random
 import cats.data.NonEmptyList
 import cats.data.Chain
+import cats.Monad
 
 // Status = Pending | In Progress (percentage: Int) | Done (at: Instant)
 
@@ -41,92 +42,67 @@ object Status {
 //Content = Video (length: FiniteDuration, link: String) | Playlist (elements: List[Content])
 sealed trait Content extends Product with Serializable {
 
-  def fold[A](video: (FiniteDuration, String) => A, playlist: List[A] => A): A = {
-    case class StackFrame(before: Chain[A], after: List[Content]) {
-      def addResult(result: A): StackFrame = copy(before = before.append(result))
+  def fold[A](video: (FiniteDuration, String) => A, playlist: NonEmptyList[A] => A): A = {
+    case class StackFrame(results: Chain[A], pendingWork: List[Content]) {
+      def addResult(result: A): StackFrame = copy(results = results.append(result))
 
-      def takeWork: Option[(Content, StackFrame)] = after match {
-        case work :: moreWork => Some((work, copy(after = moreWork)))
-        case _                => None
-      }
+      def takeWork: Option[(Content, StackFrame)] =
+        pendingWork match {
+          case head :: tail => (head, StackFrame(results, tail)).some
+          case Nil          => None
+        }
     }
 
     case class Stack(frames: NonEmptyList[StackFrame]) {
       def pop: (StackFrame, Option[Stack]) = (frames.head, frames.tail.toNel.map(Stack(_)))
 
       def push(frame: StackFrame): Stack = Stack(frame :: frames)
-
-      //Provides the given value to the top frame in the stack.
-      //The result is NOT further analyzed to remove completed nodes.
-      def provide(value: A): Stack = {
-        val (topFrame, rest) = pop
-
-        Stack.pushOrStart(rest)(topFrame.addResult(value))
-      }
     }
 
     object Stack {
       def pushOrStart(stack: Option[Stack])(frame: StackFrame): Stack = stack.fold(Stack(NonEmptyList.one(frame)))(_.push(frame))
     }
 
-    //unwinds the stack until a frame is found that's not complete, or until everything is complete and we have an A.
-    @tailrec
-    def unwind(stack: Stack): Either[Stack, A] = {
-      val (topFrame, restOfStack) = stack.pop
+    def step(stack: Stack): Either[Stack, A] = {
+      val (topFrame, moreStackMaybe) = stack.pop
 
-      topFrame.after match {
-        //no more work in this frame - applying!
-        //after flattening the enclosing stack frame, we need to provide it as a value to the parents
-        case Nil =>
-          val finalizedNode = playlist(topFrame.before.toList)
+      topFrame.takeWork match {
+        case Some((work, topFrameRemaining)) =>
+          val appliedWork = work match {
+            case Playlist(elements) =>
+              val newFrame = StackFrame(Chain.nil, elements.toList)
 
-          restOfStack match {
-            //we used the top frame, that's it
-            case None => Right(finalizedNode)
-            //there's more stack - we need to provide this frame's value as the result of the work in the frame above, and try to unwind again
-            case Some(moreStack) => unwind(moreStack.provide(finalizedNode))
+              Stack.pushOrStart(moreStackMaybe)(topFrameRemaining).push(newFrame)
+            case Video(len, link) =>
+              val newValue = video(len, link)
+
+              Stack.pushOrStart(moreStackMaybe)(topFrameRemaining.addResult(newValue))
           }
 
-        //there's more work in this frame - returning the entire stack unchanged
-        case _ => Left(stack)
+          appliedWork.asLeft
+        case None =>
+          val appliedFrame = playlist(topFrame.results.toList.toNel.get)
+
+          moreStackMaybe match {
+            case None =>
+              //no more stack, no more work, done
+              appliedFrame.asRight
+            case Some(moreStack) =>
+              val (nextFrame, restOfStack) = moreStack.pop
+              Stack.pushOrStart(restOfStack)(nextFrame.addResult(appliedFrame)).asLeft
+          }
       }
     }
 
-    @tailrec
-    def go(work: Content, stack: Option[Stack]): A = work match {
-      case Video(length, link) =>
-        val newValue = video(length, link)
-
-        stack match {
-          //we're the top node - just returning the value (the root was a video)
-          case None => newValue
-          case Some(stack) =>
-            unwind(stack.provide(newValue)) match {
-              case Left(moreStack) =>
-                moreStack.pop match {
-                  case (frame, moreStack) =>
-                    frame.takeWork match {
-                      case None =>
-                        //no more work, we're okay I guess
-                        ???
-                      case Some((work, restInFrame)) =>
-                        go(work, Some(Stack.pushOrStart(moreStack)(restInFrame)))
-                    }
-                }
-              case Right(value) => value
-            }
-        }
-
+    this match {
+      case Video(len, link) => video(len, link)
       case Playlist(elements) =>
-        val first :: more = elements
-
-        go(first, Some(Stack.pushOrStart(stack)(StackFrame(Chain.nil, more))))
+        val initialStack = Stack(NonEmptyList.one(StackFrame(Chain.nil, elements.toList)))
+        Monad[cats.Id].tailRecM(initialStack)(step)
     }
-
-    go(this, None)
   }
 
-  def foldNaive[A](video: (FiniteDuration, String) => A, playlist: List[A] => A): A = this match {
+  def foldNaive[A](video: (FiniteDuration, String) => A, playlist: NonEmptyList[A] => A): A = this match {
     case Playlist(elements)  => playlist(elements.map(_.foldNaive(video, playlist)))
     case Video(length, link) => video(length, link)
   }
@@ -134,16 +110,16 @@ sealed trait Content extends Product with Serializable {
 
 object Content {
   final case class Video(length: FiniteDuration, link: String) extends Content
-  final case class Playlist(elements: List[Content]) extends Content
+  final case class Playlist(elements: NonEmptyList[Content]) extends Content
 
-  val playlistCount: Content => Int = _.fold[Int]((_, _) => 0, 1 + _.sum)
-  val playlistCountNaive: Content => Int = _.foldNaive[Int]((_, _) => 0, 1 + _.sum)
+  val playlistCount: Content => Int = _.fold[Int]((_, _) => 0, 1 + _.reduce)
+  val playlistCountNaive: Content => Int = _.foldNaive[Int]((_, _) => 0, 1 + _.reduce)
 
   val totalLength: Content => FiniteDuration = _.fold[FiniteDuration]((len, _) => len, _.foldLeft(Duration.Zero)(_ + _))
-  val totalLengthNaive: Content => FiniteDuration = _.foldNaive[FiniteDuration]((len, _) => len, _.foldLeft(Duration.Zero)(_ + _))
+  val totalLengthNaive: Content => FiniteDuration = _.foldNaive[FiniteDuration]((len, _) => len, _.reduceLeft(_ + _))
 
-  val links: Content => List[String] = _.fold[List[String]]((_, link) => List(link), _.flatten)
-  val linksNaive: Content => List[String] = _.foldNaive[List[String]]((_, link) => List(link), _.flatten)
+  val links: Content => NonEmptyList[String] = _.fold[NonEmptyList[String]]((_, link) => NonEmptyList.one(link), _.flatten)
+  val linksNaive: Content => NonEmptyList[String] = _.foldNaive[NonEmptyList[String]]((_, link) => NonEmptyList.one(link), _.flatten)
 }
 
 object Demo extends App {
@@ -151,13 +127,32 @@ object Demo extends App {
   import scala.concurrent.duration._
 
   def vid(n: Int) = Video(1.seconds, "link:" + n.toString())
-  val longList = Playlist(List(vid(0), vid(1), Playlist(List(vid(2), Playlist(List(vid(3))), vid(4))), vid(5)))
+
+  val longList = Playlist(
+    NonEmptyList.of(
+      Playlist(
+        NonEmptyList.of(
+          vid(0),
+          vid(-1)
+        )
+      ),
+      vid(1),
+      Playlist(
+        NonEmptyList.of(
+          vid(2),
+          Playlist(NonEmptyList.of(vid(3))),
+          vid(4)
+        )
+      ),
+      vid(5)
+    )
+  )
 
   def arbitraryPlaylist(depth: Int, frameSize: Int): Content =
     if (depth < 1) vid(0)
     else if (Random.nextInt() % 5 != 0) {
       Playlist {
-        List.fill(frameSize)(arbitraryPlaylist(depth - 1, frameSize))
+        NonEmptyList.fromListUnsafe(List.fill(frameSize)(arbitraryPlaylist(depth - 1, frameSize)))
       }
     } else vid(Random.nextInt())
 
@@ -171,4 +166,6 @@ object Demo extends App {
     val isSame = left == right
     if (!isSame) println("wasn't equal for playlist: " + list + s", left: $left, right: $right")
   }
+
+  // println(playlistCount(longList))
 }
