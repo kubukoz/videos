@@ -65,11 +65,11 @@ sealed trait Content extends Product with Serializable {
         frame => stack.fold(Stack(NonEmptyList.one(frame)))(_.push(frame))
     }
 
-    //Process the current frame, optionally adding its result to the next frame or yielding a result (if there is none).
+    //Process the current frame.
     //This can return up to 2 frames:
     // - a new frame, if the next unit of work is a playlist
     // - the top frame with some potential changes (or missing, if there's no more work in it)
-    def step(topFrame: StackFrame): Either[NonEmptyList[StackFrame], A] =
+    def step(topFrame: StackFrame): Either[Stack, A] =
       topFrame.takeWork match {
         case Some((work, topFrameRemaining)) =>
           val appliedWork = work match {
@@ -85,7 +85,7 @@ sealed trait Content extends Product with Serializable {
               NonEmptyList.one(topFrameRemaining.addResult(newValue))
           }
 
-          appliedWork.asLeft
+          Stack(appliedWork).asLeft
 
         case None =>
           //no more work - we can apply the results of the current frame.
@@ -99,7 +99,7 @@ sealed trait Content extends Product with Serializable {
     def stepStack(stack: Stack): Either[Stack, A] = {
       val (top, rest) = stack.pop
 
-      step(top).leftMap(Stack(_)) match {
+      step(top) match {
         case Left(frames) => rest.fold(frames)(_.pushAll(frames)).asLeft
         case Right(value) =>
           rest.map(_.pop) match {
