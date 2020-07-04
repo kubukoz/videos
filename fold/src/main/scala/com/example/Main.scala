@@ -20,6 +20,7 @@ import scala.util.Random
 import cats.data.NonEmptyList
 import cats.data.Chain
 import cats.Monad
+import cats.Eval
 
 // Status = Pending | In Progress (percentage: Int) | Done (at: Instant)
 
@@ -118,6 +119,15 @@ sealed trait Content extends Product with Serializable {
         val initialStack = Stack(NonEmptyList.one(StackFrame(Chain.nil, elements.toList)))
         Monad[cats.Id].tailRecM(initialStack) { stepStack }
     }
+  }
+
+  def foldEval[A](video: (FiniteDuration, String) => A, playlist: NonEmptyList[A] => A): A = {
+    def go(self: Content): Eval[A] = self match {
+      case Playlist(elements)  => elements.traverse(go).map(playlist)
+      case Video(length, link) => Eval.now(video(length, link))
+    }
+
+    go(this).value
   }
 
   def foldNaive[A](video: (FiniteDuration, String) => A, playlist: NonEmptyList[A] => A): A = this match {
