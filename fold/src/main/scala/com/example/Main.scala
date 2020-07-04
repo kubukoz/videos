@@ -60,7 +60,8 @@ sealed trait Content extends Product with Serializable {
     }
 
     object Stack {
-      def pushOrStart(stack: Option[Stack])(frame: StackFrame): Stack = stack.fold(Stack(NonEmptyList.one(frame)))(_.push(frame))
+      def pushOrStart(stack: Option[Stack]): StackFrame => Stack =
+        frame => stack.fold(Stack(NonEmptyList.one(frame)))(_.push(frame))
     }
 
     def step(stack: Stack): Either[Stack, A] = {
@@ -68,26 +69,32 @@ sealed trait Content extends Product with Serializable {
 
       topFrame.takeWork match {
         case Some((work, topFrameRemaining)) =>
+          val continueStack = Stack.pushOrStart(moreStackMaybe)
+
           val appliedWork = work match {
             case Playlist(elements) =>
               val newFrame = StackFrame(Chain.nil, elements.toList)
 
-              Stack.pushOrStart(moreStackMaybe)(topFrameRemaining).push(newFrame)
+              //re-push the top frame, but without the current work.
+              continueStack(topFrameRemaining).push(newFrame)
             case Video(len, link) =>
               val newValue = video(len, link)
 
-              Stack.pushOrStart(moreStackMaybe)(topFrameRemaining.addResult(newValue))
+              continueStack(topFrameRemaining.addResult(newValue))
           }
 
           appliedWork.asLeft
+
         case None =>
+          //no more work - we can apply the results of the current frame.
+          //this is safe, because a frame must have at least one of (pending work, results).
           val appliedFrame = playlist(topFrame.results.toList.toNel.get)
 
           moreStackMaybe match {
-            case None =>
-              //no more stack, no more work, done
-              appliedFrame.asRight
+            //no more stack, no more work, done
+            case None            => appliedFrame.asRight
             case Some(moreStack) =>
+              //there's more stack - we'll add the current result to the top frame
               val (nextFrame, restOfStack) = moreStack.pop
               Stack.pushOrStart(restOfStack)(nextFrame.addResult(appliedFrame)).asLeft
           }
