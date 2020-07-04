@@ -57,6 +57,7 @@ sealed trait Content extends Product with Serializable {
       def pop: (StackFrame, Option[Stack]) = (frames.head, frames.tail.toNel.map(Stack(_)))
 
       def push(frame: StackFrame): Stack = Stack(frame :: frames)
+      def pushAll(another: Stack): Stack = Stack(another.frames.concatNel(frames))
     }
 
     object Stack {
@@ -64,23 +65,24 @@ sealed trait Content extends Product with Serializable {
         frame => stack.fold(Stack(NonEmptyList.one(frame)))(_.push(frame))
     }
 
-    def step(stack: Stack): Either[Stack, A] = {
-      val (topFrame, moreStackMaybe) = stack.pop
-
+    //Process the current frame, optionally adding its result to the next frame or yielding a result (if there is none).
+    //This can return up to 2 frames:
+    // - a new frame, if the next unit of work is a playlist
+    // - the top frame with some potential changes (or missing, if there's no more work in it)
+    def step(topFrame: StackFrame): Either[NonEmptyList[StackFrame], A] =
       topFrame.takeWork match {
         case Some((work, topFrameRemaining)) =>
-          val continueStack = Stack.pushOrStart(moreStackMaybe)
-
           val appliedWork = work match {
             case Playlist(elements) =>
               val newFrame = StackFrame(Chain.nil, elements.toList)
 
               //re-push the top frame, but without the current work.
-              continueStack(topFrameRemaining).push(newFrame)
+              NonEmptyList.of(newFrame, topFrameRemaining)
+
             case Video(len, link) =>
               val newValue = video(len, link)
 
-              continueStack(topFrameRemaining.addResult(newValue))
+              NonEmptyList.one(topFrameRemaining.addResult(newValue))
           }
 
           appliedWork.asLeft
@@ -90,13 +92,22 @@ sealed trait Content extends Product with Serializable {
           //this is safe, because a frame must have at least one of (pending work, results).
           val appliedFrame = playlist(topFrame.results.toList.toNel.get)
 
-          moreStackMaybe match {
+          appliedFrame.asRight
+      }
+
+    //Process a single step on the stack.
+    def stepStack(stack: Stack): Either[Stack, A] = {
+      val (top, rest) = stack.pop
+
+      step(top).leftMap(Stack(_)) match {
+        case Left(frames) => rest.fold(frames)(_.pushAll(frames)).asLeft
+        case Right(value) =>
+          rest.map(_.pop) match {
             //no more stack, no more work, done
-            case None            => appliedFrame.asRight
-            case Some(moreStack) =>
-              //there's more stack - we'll add the current result to the top frame
-              val (nextFrame, restOfStack) = moreStack.pop
-              Stack.pushOrStart(restOfStack)(nextFrame.addResult(appliedFrame)).asLeft
+            case None => value.asRight
+
+            //there's more stack - we'll add the current result to the top frame
+            case Some((nextFrame, restOfRest)) => Stack.pushOrStart(restOfRest)(nextFrame.addResult(value)).asLeft
           }
       }
     }
@@ -105,7 +116,7 @@ sealed trait Content extends Product with Serializable {
       case Video(len, link) => video(len, link)
       case Playlist(elements) =>
         val initialStack = Stack(NonEmptyList.one(StackFrame(Chain.nil, elements.toList)))
-        Monad[cats.Id].tailRecM(initialStack)(step)
+        Monad[cats.Id].tailRecM(initialStack) { stepStack }
     }
   }
 
