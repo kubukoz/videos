@@ -177,9 +177,8 @@ object Demo extends App {
   // println(arbitraryPlaylist(5, 3))
 
   List.fill(1000)(arbitraryPlaylist(5, 5)).foreach { list =>
-    val left = (playlistCount(list), links(list), totalLength(list))
-    val right =
-      (playlistCountNaive(list), linksNaive(list), totalLengthNaive(list))
+    val left = list.fold(Video, Playlist)
+    val right = list
 
     val isSame = left == right
     if (!isSame) println("wasn't equal for playlist: " + list + s", left: $left, right: $right")
