@@ -4,10 +4,11 @@ import scala.concurrent.duration.FiniteDuration
 import cats.data.NonEmptyList
 import cats.Monad
 import cats.data.Chain
-import com.example.Content._
 import cats.implicits._
 
 object StackSafeContentFold {
+  /*
+  import com.example.Content._
 
   def fold[A](video: (FiniteDuration, String) => A, playlist: NonEmptyList[A] => A): Content => A = {
     case class StackFrame(results: Chain[A], pendingWork: List[Content]) {
@@ -85,5 +86,5 @@ object StackSafeContentFold {
         val initialStack = Stack(NonEmptyList.one(StackFrame(Chain.nil, elements.toList)))
         Monad[cats.Id].tailRecM(initialStack) { stepStack }
     }
-  }
+  } */
 }
