@@ -7,7 +7,7 @@ import cats.data.Chain
 import cats.implicits._
 
 object StackSafeContentFold {
-  /*
+
   import com.example.Content._
 
   def fold[A](video: (FiniteDuration, String) => A, playlist: NonEmptyList[A] => A): Content => A = {
@@ -86,5 +86,5 @@ object StackSafeContentFold {
         val initialStack = Stack(NonEmptyList.one(StackFrame(Chain.nil, elements.toList)))
         Monad[cats.Id].tailRecM(initialStack) { stepStack }
     }
-  } */
+  }
 }
