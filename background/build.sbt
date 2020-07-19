@@ -4,12 +4,12 @@ def crossPlugin(x: sbt.librarymanagement.ModuleID) =
 val compilerPlugins = List(
   compilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
   crossPlugin("org.typelevel" % "kind-projector" % "0.11.0"),
-  crossPlugin("com.github.cb372" % "scala-typed-holes" % "0.1.3"),
-  crossPlugin("com.kubukoz" % "better-tostring" % "0.2.2")
+  crossPlugin("com.github.cb372" % "scala-typed-holes" % "0.1.3")
+  // crossPlugin("com.kubukoz" % "better-tostring" % "0.2.2")
 )
 
 val commonSettings = Seq(
-  scalaVersion := "2.13.2",
+  scalaVersion := "2.13.3",
   scalacOptions --= Seq(
     "-Xfatal-warnings" //because I really dislike this flag in development
   ),
