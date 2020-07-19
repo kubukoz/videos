@@ -17,12 +17,14 @@ object IOParallel extends IOApp {
     _ <- p2
   } yield ()
 
-  val runParallelWaitBoth = p1.parProduct(p2)
+  val runParallelWaitBoth = p1.parProduct(p2).void
+
+  import cats.implicits._
 
   val runParallelForgetOne = for {
-    _ <- p1.start
-    _ <- p2
+    fiber <- p1.start
+    _     <- p2
   } yield ()
 
-  def run(args: List[String]): IO[ExitCode] = IO.never
+  def run(args: List[String]): IO[ExitCode] = runSequential.as(ExitCode.Success)
 }

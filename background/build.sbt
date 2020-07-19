@@ -19,7 +19,7 @@ val commonSettings = Seq(
   fork in Test := true,
   updateOptions := updateOptions.value.withGigahorse(false),
   libraryDependencies ++= Seq(
-    "org.typelevel" %% "cats-effect" % "2.1.3",
+    "org.typelevel" %% "cats-effect" % "2.1.4",
     "org.http4s" %% "http4s-blaze-server" % "0.21.4",
     "dev.zio" %% "zio" % "1.0.0-RC21",
     "dev.zio" %% "zio-interop-cats" % "2.1.3.0-RC16",
