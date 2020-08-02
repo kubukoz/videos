@@ -1,0 +1,30 @@
+effect PrintHello(): Unit
+
+def demo(): Unit / {PrintHello} = {
+  do PrintHello()
+  do PrintHello()
+  do PrintHello()
+}
+
+def demoHandled() = {
+  try demo() with PrintHello {
+    println("Hello, World!")
+    resume(())
+  }
+}
+
+effect NumberException(msg: String): Int
+
+def handleNumberExceptions[T] { program: T / NumberException}: T / Console = {
+  try program() with NumberException {
+    msg => println("Handling number exception: " ++ msg); resume(0); resume(0)
+  }
+}
+
+def numberDemo(n: Int) =
+  if(n > 1) n
+  else do NumberException("Not greater than 1")
+
+def main(): Unit / {Console} = {
+  println(handleNumberExceptions { numberDemo(1) })
+}
