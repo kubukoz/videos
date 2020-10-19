@@ -10,13 +10,12 @@ object ZIOMain extends zio.App {
   import zio.interop.catz._
 
   def run(args: List[String]): URIO[ZEnv, ExitCode] = {
-    val process = Commons.process[ZIO[Clock, Throwable, *]]
+    val process = Commons.process[RIO[Clock, *]].onInterrupt(putStrLn("Interrupted main process".supervisorMessage))
 
     val supervisor: ZIO[Console with Clock, Nothing, Unit] = for {
       _ <- putStrLn("Starting background process".supervisorMessage)
       _ <- process.fork
-      _ <- ZIO.sleep(500.millis)
-      _ <- putStrLn("Finishing supervisor".supervisorMessage)
+      _ <- putStrLn("Finishing supervisor".supervisorMessage).delay(500.millis)
     } yield ()
 
     supervisor.fork.flatMap { supervisorFiber =>
