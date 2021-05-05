@@ -9,6 +9,7 @@ val commonSettings = Seq(
   fork in Test := true,
   updateOptions := updateOptions.value.withGigahorse(false),
   libraryDependencies ++= Seq(
+    "org.typelevel" %% "cats-core" % "2.6.0",
     "org.typelevel" %% "cats-effect" % "2.0.0",
     "org.typelevel" %% "cats-testkit" % "2.0.0" % Test,
     "dev.profunktor" %% "console4cats" % "0.8.0"
