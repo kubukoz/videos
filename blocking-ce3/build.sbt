@@ -9,8 +9,8 @@ val commonSettings = Seq(
   fork in Test := true,
   name := "blocking",
   libraryDependencies ++= Seq(
-    "org.typelevel" %% "cats-effect" % "2.5.1",
-    "co.fs2" %% "fs2-io" % "2.5.6",
+    "org.typelevel" %% "cats-effect" % "3.1.1",
+    "co.fs2" %% "fs2-io" % "3.0.4",
   ) ++ compilerPlugins,
   scalacOptions -= "-Xfatal-warnings",
 )

@@ -8,22 +8,33 @@ trait JDBC[F[_]] {
 
 object JDBC {
 
-  def mock[F[_]: ContextShift: Sync](blocker: Blocker): JDBC[F] = new JDBC[F] {
+  def mock[F[_]: Sync]: JDBC[F] = new JDBC[F] {
 
-    def execute: F[Unit] = blocker.delay {
+    def execute: F[Unit] = Sync[F].blocking {
       println("Executing...")
       Thread.sleep(1000)
     }
 
   }
 
-}
+  // you can do IO.blocking directly and it doesn't require any imports (just IO)!
+  val mockIO: JDBC[IO] = new JDBC[IO] {
 
-object BlockerDemo extends IOApp {
+    def execute: IO[Unit] = IO
+      .blocking {
+        println("Executing...")
+        Thread.sleep(1000000)
+      }
+      .start
+      .flatMap(_.cancel)
 
-  val jdbc: Resource[IO, JDBC[IO]] = Blocker[IO].map { blocker =>
-    JDBC.mock[IO](blocker)
   }
 
-  def run(args: List[String]): IO[ExitCode] = jdbc.use(_.execute).as(ExitCode.Success)
+}
+
+object BlockerDemo extends IOApp.Simple {
+
+  val jdbc: JDBC[IO] = JDBC.mock[IO]
+
+  def run: IO[Unit] = jdbc.execute
 }

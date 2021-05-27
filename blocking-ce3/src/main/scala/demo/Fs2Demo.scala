@@ -1,10 +1,8 @@
 package demo
 
-import cats.effect.Blocker
-import cats.effect.ContextShift
+import fs2.io.file.Files
 import java.nio.file.Paths
-import cats.effect.IO
 
-class Fs2Demo(blocker: Blocker)(implicit cs: ContextShift[IO]) {
-  val bytes: fs2.Stream[IO, Byte] = fs2.io.file.readAll[IO](Paths.get("build.sbt"), blocker, 4096)
+class Fs2Demo[F[_]: Files] {
+  val bytes: fs2.Stream[F, Byte] = Files[F].readAll(Paths.get("build.sbt"), 4096)
 }
