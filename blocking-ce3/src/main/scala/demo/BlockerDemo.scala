@@ -20,13 +20,12 @@ object JDBC {
   // you can do IO.blocking directly and it doesn't require any imports (just IO)!
   val mockIO: JDBC[IO] = new JDBC[IO] {
 
-    def execute: IO[Unit] = IO
-      .blocking {
+    def execute: IO[Unit] =
+      IO.blocking {
         println("Executing...")
         Thread.sleep(1000000)
-      }
-      .start
-      .flatMap(_.cancel)
+      }.start
+        .flatMap(_.cancel)
 
   }
 
