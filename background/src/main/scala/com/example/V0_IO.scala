@@ -17,7 +17,7 @@ object IOParallel extends IOApp {
     _ <- p2
   } yield ()
 
-  val runParallelWaitBoth = p1.parProduct(p2).void
+  val runParallelWaitBoth = p1.both(p2).void
 
   import cats.implicits._
 
