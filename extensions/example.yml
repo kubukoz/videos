@@ -1,0 +1,8 @@
+hello:
+  world:
+    this:
+      - is:
+        - very
+      - nested
+      - are all of these strings?
+      - NO # 🇳🇴
