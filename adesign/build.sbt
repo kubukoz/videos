@@ -6,7 +6,8 @@ val commonSettings = Seq(
   scalaVersion := "3.0.1",
   fork in Test := true,
   libraryDependencies ++= Seq(
-    "org.typelevel" %% "cats-core" % "2.6.1"
+    "org.typelevel" %% "cats-core" % "2.6.1",
+    "org.typelevel" %% "cats-effect" % "3.2.5",
   ) ++ compilerPlugins,
   scalacOptions -= "-Xfatal-warnings",
 )
