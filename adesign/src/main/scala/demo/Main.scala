@@ -7,9 +7,7 @@ enum Button {
   case X, Y, Z
 }
 
-trait ComboDSL {
-  type Combo
-
+trait ComboDSL[Combo] {
   def press(button: Button): Combo
   def hold(button: Button): Combo
   def both(one: Combo, another: Combo): Combo
@@ -34,7 +32,7 @@ enum Combo {
   case A
 }
 
-def demo(implicit dsl: ComboDSL): Combo = ???
+def demo[Combo](implicit dsl: ComboDSL[Combo]): Combo = ???
 
 trait Security[F[_], Role: Show] {
   def requireRole[A](role: Role)(fa: F[A]): F[A]
