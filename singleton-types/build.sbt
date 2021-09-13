@@ -9,8 +9,18 @@ val commonSettings = Seq(
   scalacOptions -= "-Xfatal-warnings",
 )
 
+val scala3 = project
+  .settings(commonSettings)
+  .settings(scalaVersion := "3.0.1")
+
 val root =
   project
     .in(file("."))
     .settings(commonSettings)
-    .settings(skip in publish := true)
+    .settings(
+      libraryDependencies ++= List(
+        "com.chuusai" %% "shapeless" % "2.3.7",
+        "eu.timepit" %% "singleton-ops" % "0.5.2",
+      ),
+      skip in publish := true,
+    )
