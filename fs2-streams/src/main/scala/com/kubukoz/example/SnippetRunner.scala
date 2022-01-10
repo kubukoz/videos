@@ -39,20 +39,29 @@ object SnippetRunner {
       }
 
   implicit class ShowValues[A](stream: Stream[IO, A]) {
+    def debugged(tag: String): Stream[IO, A] =
+      stream.evalTap(a => IO.println(s"$a: $tag"))
 
     //A utility for worksheets that allows showing a couple values of a stream produced within reasonable time.
-    def showValues(implicit rt: IORuntime) =
-      stream
-        .map(_.toString)
-        .through(limitedElements(10))
-        .through(maxTime(3.seconds))
-        .compile
-        .toList
-        .unsafeRunSync()
-        .mkString(", ")
+    def showValues(implicit rt: IORuntime): String = {
+      val oldOut = System.out
+      try {
+        System
+          .setOut(Console.out)
+
+        stream
+          .map(_.toString)
+          .through(limitedElements(10))
+          .through(maxTime(3.seconds))
+          .compile
+          .toList
+          .unsafeRunSync()
+          .mkString(", ")
+      } finally {
+        System.setOut(oldOut)
+      }
+    }
   }
 
   val randomInt: IO[Int] = std.Random.scalaUtilRandom[IO].flatMap(_.nextInt)
-
-  def tagged(tag: String): Int => String = i => s"$i: $tag"
 }

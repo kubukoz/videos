@@ -1,3 +1,4 @@
+import java.io.PrintStream
 //IO effect type
 import cats.effect.IO
 
@@ -47,15 +48,15 @@ val b = Stream.iterate(1)(_ * 2).take(8)
 
 Stream
   .iterate(1)(_ * 2)
-  .debug(tagged(": iterate"))
+  .debugged(": iterate")
   .scan1(_ + _)
-  .debug(tagged(": scan"))
+  .debugged(": scan")
   .dropWhile(_ < 1000)
-  .debug(tagged(": drop"))
+  .debugged(": drop")
   .filter(_ % 3 == 0)
-  .debug(tagged(": filter"))
+  .debugged(": filter")
   .map(_ * 2)
-  .debug(tagged(": map"))
+  .debugged(": map")
   .take(3)
-  .debug(tagged(": take"))
+  .debugged(": take")
   .showValues
