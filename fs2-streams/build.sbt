@@ -3,12 +3,11 @@ def crossPlugin(x: sbt.librarymanagement.ModuleID) =
 
 val compilerPlugins = List(
   compilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
-  crossPlugin("org.typelevel" % "kind-projector" % "0.11.0"),
-  crossPlugin("com.github.cb372" % "scala-typed-holes" % "0.1.1")
+  crossPlugin("org.typelevel" % "kind-projector" % "0.13.2"),
 )
 
 val commonSettings = Seq(
-  scalaVersion := "2.13.1",
+  scalaVersion := "2.13.7",
   scalacOptions --= Seq(
     "-Xfatal-warnings", //because I really dislike this flag in development
     "-Wunused:imports" //because we'll start with unused imports
