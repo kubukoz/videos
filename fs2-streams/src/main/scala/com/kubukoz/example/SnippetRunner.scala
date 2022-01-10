@@ -40,7 +40,7 @@ object SnippetRunner {
 
   implicit class ShowValues[A](stream: Stream[IO, A]) {
     def debugged(tag: String): Stream[IO, A] =
-      stream.evalTap(a => IO.println(s"$a: $tag"))
+      stream.debug(a => s"$a: $tag", System.out.println)
 
     //A utility for worksheets that allows showing a couple values of a stream produced within reasonable time.
     def showValues(implicit rt: IORuntime): String = {
