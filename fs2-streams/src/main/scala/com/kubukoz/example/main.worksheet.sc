@@ -3,6 +3,7 @@ import cats.effect.IO
 
 //syntax, e.g. mapN, *>
 import cats.implicits._
+import cats.effect.unsafe.implicits._
 
 //.showValues syntax for safe stream running in worksheets
 import com.kubukoz.example.SnippetRunner._
@@ -46,15 +47,15 @@ val b = Stream.iterate(1)(_ * 2).take(8)
 
 Stream
   .iterate(1)(_ * 2)
-  .debug(_ + ": iterate")
+  .debug(tagged(": iterate"))
   .scan1(_ + _)
-  .debug(_ + ": scan")
+  .debug(tagged(": scan"))
   .dropWhile(_ < 1000)
-  .debug(_ + ": drop")
+  .debug(tagged(": drop"))
   .filter(_ % 3 == 0)
-  .debug(_ + ": filter")
+  .debug(tagged(": filter"))
   .map(_ * 2)
-  .debug(_ + ": map")
+  .debug(tagged(": map"))
   .take(3)
-  .debug(_ + ": take")
+  .debug(tagged(": take"))
   .showValues

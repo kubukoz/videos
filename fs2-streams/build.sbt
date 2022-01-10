@@ -3,7 +3,7 @@ def crossPlugin(x: sbt.librarymanagement.ModuleID) =
 
 val compilerPlugins = List(
   compilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
-  crossPlugin("org.typelevel" % "kind-projector" % "0.13.2"),
+  crossPlugin("org.typelevel" % "kind-projector" % "0.13.2")
 )
 
 val commonSettings = Seq(
@@ -16,12 +16,13 @@ val commonSettings = Seq(
     "-Ymacro-annotations"
   ),
   fork in Test := true,
-  updateOptions := updateOptions.value.withGigahorse(false),
   libraryDependencies ++= Seq(
-    "co.fs2" %% "fs2-core" % "2.2.2",
-    "dev.profunktor" %% "console4cats" % "0.8.1"
+    "co.fs2" %% "fs2-core" % "3.2.4"
   ) ++ compilerPlugins
 )
 
 val fs2Streams =
-  project.in(file(".")).settings(commonSettings).settings(skip in publish := true)
+  project
+    .in(file("."))
+    .settings(commonSettings)
+    .settings(skip in publish := true)
