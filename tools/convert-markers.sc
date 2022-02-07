@@ -1,4 +1,4 @@
-//using scala 2.13.7
+//> using scala "2.13.7"
 
 import scala.io.Codec
 import scala.io.Source
