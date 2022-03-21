@@ -11,6 +11,8 @@
       };
     in
     {
-      devShell.${system} = pkgs.mkShell { buildInputs = [ pkgs.scala-cli ]; };
+      devShell.${system} = pkgs.mkShell {
+        buildInputs = [ pkgs.scala-cli pkgs.openjdk17 ];
+      };
     };
 }
