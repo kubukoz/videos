@@ -13,6 +13,7 @@
     {
       devShell.${system} = pkgs.mkShell {
         buildInputs = [ pkgs.scala-cli pkgs.openjdk17 ];
+        JAVA_HOME=pkgs.openjdk17;
       };
     };
 }
