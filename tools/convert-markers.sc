@@ -1,11 +1,12 @@
-//> using scala "2.13.7"
+//> using scala "3.1.1"
 
 import scala.io.Codec
 import scala.io.Source
 import scala.util.Using
 
-sealed trait Type
-case object Chapter extends Type
+enum Type {
+  case Chapter
+}
 
 case class Timestamp(h: String, m: String, s: String, frames: String)
 
@@ -20,7 +21,7 @@ case class Marker(
 }
 
 def parseType(s: String): Type = s match {
-  case "Chapter" => Chapter
+  case "Chapter" => Type.Chapter
 }
 
 def parseTimestamp(s: String): Timestamp = {
@@ -41,6 +42,6 @@ Using(
   }
 
 }.get
-  .filter(_.tpe == Chapter)
+  .filter(_.tpe == Type.Chapter)
   .map(_.renderOut)
   .foreach(println)
