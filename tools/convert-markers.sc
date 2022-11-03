@@ -1,4 +1,4 @@
-//> using scala "3.1.1"
+//> using scala "3.2.0"
 
 import scala.io.Codec
 import scala.io.Source
