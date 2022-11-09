@@ -1,7 +1,0 @@
-{
-  "editor.formatOnSave": false,
-  "window.zoomLevel": 7,
-  "files.watcherExclude": {
-    "**/target": true
-  }
-}
