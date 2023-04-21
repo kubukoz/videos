@@ -24,7 +24,7 @@ operation GetWeather {
     }
 }
 
-@http(method: "POST", uri: "/cities")
+@http(method: "POST", uri: "/cities", code: 201)
 operation CreateCity {
     input := {
         @required
