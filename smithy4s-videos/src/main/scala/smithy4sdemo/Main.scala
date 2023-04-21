@@ -8,10 +8,11 @@ import hello.CreateCityOutput
 import hello.GetWeatherOutput
 import hello.WeatherService
 import org.http4s.HttpRoutes
+import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
 import smithy4s.http4s.SimpleRestJsonBuilder
 
-object Main extends IOApp.Simple {
+object ServerMain extends IOApp.Simple {
 
   val impl: WeatherService[IO] =
     new WeatherService[IO] {
@@ -43,5 +44,20 @@ object Main extends IOApp.Simple {
       }
       .evalMap(srv => IO.println(srv.addressIp4s))
       .useForever
+
+}
+
+object ClientMain extends IOApp.Simple {
+
+  def run: IO[Unit] = EmberClientBuilder.default[IO].build.use { c =>
+    SimpleRestJsonBuilder(WeatherService).client(c).resource.use { client =>
+      client
+        .createCity("London", "UK")
+        .flatMap { output =>
+          client.getWeather(output.cityId)
+        }
+        .flatMap(IO.println(_))
+    }
+  }
 
 }
