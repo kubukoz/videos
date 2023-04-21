@@ -1,27 +1,19 @@
-//> using scala "3.2.0"
+//> using scala "3.2.2"
 
 import scala.io.Codec
 import scala.io.Source
 import scala.util.Using
-
-enum Type {
-  case Chapter
-}
 
 case class Timestamp(h: String, m: String, s: String, frames: String)
 
 case class Marker(
     name: String,
     in: Timestamp,
-    tpe: Type
+    tpe: String
 ) {
   def renderOut: String = {
     s"${in.h}:${in.m}:${in.s} - $name"
   }
-}
-
-def parseType(s: String): Type = s match {
-  case "Chapter" => Type.Chapter
 }
 
 def parseTimestamp(s: String): Timestamp = {
@@ -38,10 +30,10 @@ Using(
     val name :: _ :: in :: _ :: _ :: tpe :: Nil =
       line.split("\\t").toList
 
-    Marker(name, parseTimestamp(in), parseType(tpe))
+    Marker(name, parseTimestamp(in), tpe)
   }
 
 }.get
-  .filter(_.tpe == Type.Chapter)
+  .filter(_.tpe == "Chapter")
   .map(_.renderOut)
   .foreach(println)
