@@ -1,0 +1,3 @@
+.vscode/
+.smithy.lsp.log
+**/target
