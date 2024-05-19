@@ -10,7 +10,6 @@ import java.util.ServiceLoader
 import scala.jdk.CollectionConverters.*
 
 @main def app(extraDepsString: String) = {
-  val data = Data("Hello, world!")
 
   val extraDepJars = Fetch()
     .addDependencies(
@@ -23,6 +22,8 @@ import scala.jdk.CollectionConverters.*
   val plugins = ServiceLoader.load(classOf[Plugin], loader).asScala.toList
 
   println(s"Plugins loaded: ${plugins.map(_.name).mkString(", ")}\n")
+
+  val data = Data("Hello, world!")
 
   plugins.foreach { plugin =>
     println(s"${plugin.name}:")
