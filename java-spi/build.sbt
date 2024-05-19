@@ -5,7 +5,12 @@ val interface = project
 
 val printerPlugin = project
   .dependsOn(interface)
-  .settings(name := "printer-plugin")
+  .settings(
+    name := "printer-plugin",
+    libraryDependencies ++= Seq(
+      "org.scalameta" %% "munit" % "1.0.0-RC1"
+    ),
+  )
 
 val app = project
   .dependsOn(interface)

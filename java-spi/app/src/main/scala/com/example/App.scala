@@ -11,16 +11,22 @@ import scala.jdk.CollectionConverters.*
 
 @main def app(extraDepsString: String) = {
 
-  val extraDepJars = Fetch()
+  // 1. Prepare dependencies
+  val extraDepJars: Seq[File] = Fetch()
     .addDependencies(
       DependencyParser.dependencies(extraDepsString.split(","), "3.4.1").either.toOption.get*
     )
     .run()
 
+  extraDepJars.foreach(println)
+
+  // 2. Build classloader
   val loader = new URLClassLoader(extraDepJars.map(_.toURI().toURL()).toArray)
 
+  // 3. Load plugins
   val plugins = ServiceLoader.load(classOf[Plugin], loader).asScala.toList
 
+  // 4. Use plugins
   println(s"Plugins loaded: ${plugins.map(_.name).mkString(", ")}\n")
 
   val data = Data("Hello, world!")
