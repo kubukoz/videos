@@ -2,37 +2,82 @@ package com.example
 
 import coursier.Fetch
 import coursier.parse.DependencyParser
+import javax.swing.JFrame
+import javax.swing.JLabel
+import javax.swing.SwingConstants
+import javax.swing.SwingUtilities
+import javax.swing.WindowConstants
 
+import java.awt.BorderLayout
+import java.awt.Font
+import java.awt.datatransfer.DataFlavor
+import java.awt.dnd.DnDConstants
+import java.awt.dnd.DropTarget
+import java.awt.dnd.DropTargetAdapter
+import java.awt.dnd.DropTargetDropEvent
 import java.io.File
+import java.net.URI
 import java.net.URL
 import java.net.URLClassLoader
 import java.util.ServiceLoader
+import java.{util => ju}
 import scala.jdk.CollectionConverters.*
+import scala.util.Using
 
-@main def app(extraDepsString: String) = {
+object DragDropDemo extends App {
+  SwingUtilities.invokeLater(() => new DragDropDemo().setVisible(true))
+}
 
-  // 1. Prepare dependencies
-  val extraDepJars: Seq[File] = Fetch()
-    .addDependencies(
-      DependencyParser.dependencies(extraDepsString.split(","), "3.4.1").either.toOption.get*
-    )
-    .run()
+class DragDropDemo extends JFrame {
+  // Set up the main window
+  setTitle("Pluggable app")
+  setSize(400, 200)
+  setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE)
+  setLocationRelativeTo(null)
 
-  extraDepJars.foreach(println)
+  // Create and set up the label
+  val label = new JLabel("Please drag&drop plugins here", SwingConstants.CENTER)
+  label.setFont(new Font("Arial", Font.PLAIN, 16))
+  add(label, BorderLayout.CENTER)
 
-  // 2. Build classloader
-  val loader = new URLClassLoader(extraDepJars.map(_.toURI().toURL()).toArray)
+  val listener: DropTargetAdapter =
+    event =>
+      try {
+        // Accept the drop first, important!
+        event.acceptDrop(DnDConstants.ACTION_COPY)
 
-  // 3. Load plugins
-  val plugins = ServiceLoader.load(classOf[Plugin], loader).asScala.toList
+        // Get the dropped files
+        val transferable = event.getTransferable
+        val droppedFiles = transferable
+          .getTransferData(DataFlavor.javaFileListFlavor)
+          .asInstanceOf[java.util.List[File]]
 
-  // 4. Use plugins
-  println(s"Plugins loaded: ${plugins.map(_.name).mkString(", ")}\n")
+        val loader = new URLClassLoader(droppedFiles.asScala.map(_.toURI().toURL()).toArray)
 
-  val data = Data("Hello, world!")
+        // format: off
 
-  plugins.foreach { plugin =>
-    println(s"${plugin.name}:")
-    plugin.run(data)
-  }
+        val plugins =
+          ServiceLoader.load(
+            classOf[Plugin],
+            loader
+          )
+
+        val fileNames = plugins.asScala.toList
+          .map(_.name)
+          .mkString("<html>Loaded plugin(s):<br>", "<br>", "</html>")
+
+        // Update the label with the file names
+        label.setText(fileNames.toString)
+
+        // Indicate drop success
+        event.dropComplete(true)
+      } catch {
+        case ex: Exception =>
+          ex.printStackTrace()
+          event.dropComplete(false)
+
+      }
+
+  new DropTarget(label, listener)
+
 }
