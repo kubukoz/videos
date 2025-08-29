@@ -13,7 +13,7 @@ object Main {
 
   val x: "John" = f(p)
 
-  val jk = p.copy(name = "Jakub")
+  val jk: Person("Jakub") = p.copy(name = "Jakub")
 
 }
 
