@@ -1,0 +1,18 @@
+@(todos: List[String], submitUrl: String)
+<body class="container mx-auto px-4 py-32 text-zinc-900">
+  <h1 class="text-2xl text-violet-700 font-semibold">TODOs</h1>
+  <ul>
+    @todos.map { todo =>
+    <li>@todo</li>
+    }
+  </ul>
+  <form action="@submitUrl" method="POST">
+    <input
+      type="text"
+      name="name"
+      placeholder="throw out the trash"
+      class="border-2"
+    />
+    <button type="submit">New TODO</button>
+  </form>
+</body>
