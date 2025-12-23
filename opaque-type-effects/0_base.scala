@@ -3,7 +3,8 @@ package base
 @main def base = {
   val first = types.Item.fromString("42")
 
-  println(first) // println(first.toTry.get + 5)
+  println(first)
+  // println(first.toTry.get + 5)
 
   println(types.Item.fromString("abc"))
 
