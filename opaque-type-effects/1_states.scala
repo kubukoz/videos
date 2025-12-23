@@ -34,7 +34,10 @@ object History {
   given Monad[Builder] = IndexedStateT.catsDataMonadForIndexedStateT
 
   val length: Builder[Int] = StateT.inspect(_.log.size)
-  def print(s: String): Builder[Unit] = StateT.lift(IO.println(s))
+
+  def print(s: String): Builder[Unit] = StateT.liftF(IO.println(s))
   def append(i: Int): Builder[Unit] = StateT.modify(_.append(i))
+
   def build(b: Builder[Unit]): IO[History] = b.runS(History(Vector.empty))
+
 }
