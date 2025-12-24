@@ -21,4 +21,16 @@ object types {
 
   }
 
+  opaque type NonNegInt = Int
+
+  object NonNegInt {
+
+    def fromInt(i: Int): Either[Throwable, NonNegInt] =
+      if (i >= 0)
+        Right(i)
+      else
+        Left(new Exception(s"Negative integer: $i"))
+
+  }
+
 }

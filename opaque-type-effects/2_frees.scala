@@ -45,7 +45,7 @@ object History {
 
   def build(b: Builder[Unit]): IO[History] = IO
     .ref(History(Vector.empty))
-    .flatTap { ref =>
+    .flatMap { ref =>
       b.foldMap(
         new FunctionK[Alg, IO] {
           def apply[A](fa: Alg[A]): IO[A] =
@@ -55,8 +55,7 @@ object History {
               case Alg.Print(s)  => IO.println(s)
             }
         }
-      )
+      ) *> ref.get
     }
-    .flatMap(_.get)
 
 }

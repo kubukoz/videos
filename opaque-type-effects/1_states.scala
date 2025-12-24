@@ -28,10 +28,11 @@ case class History private (log: Vector[Int]) {
 }
 
 object History {
+  val empty: History = History(Vector.empty)
 
   opaque type Builder[A] = StateT[IO, History, A]
 
-  given Monad[Builder] = IndexedStateT.catsDataMonadForIndexedStateT
+  given Monad[Builder] = Monad[StateT[IO, History, *]]
 
   val length: Builder[Int] = StateT.inspect(_.log.size)
 

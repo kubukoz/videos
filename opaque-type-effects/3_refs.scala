@@ -36,11 +36,14 @@ object History {
   val length: Builder[Int] = ReaderT(_.get.map(_.log.size))
 
   def print(s: String): Builder[Unit] = ReaderT.liftF(IO.println(s))
-  def append(i: Int): Builder[Unit] = ReaderT(_.update(history => history.append(i)))
+  def append(i: Int): Builder[Unit] = ReaderT(_.update(_.append(i)))
+
+  def liftIO[A](io: IO[A]): Builder[A] = ReaderT.liftF(io)
 
   def build(b: Builder[Unit]): IO[History] = IO
     .ref(History(Vector.empty))
-    .flatTap(b.run)
-    .flatMap(_.get)
+    .flatMap { ref =>
+      b.run(ref) *> ref.get
+    }
 
 }
